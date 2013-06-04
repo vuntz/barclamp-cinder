@@ -91,7 +91,13 @@
       },
       "api": {
         "bind_open_address": true,
-        "bind_port": 8776
+        "bind_port": 8776,
+        "protocol": "http",
+        "ssl": {
+          "certfile": "",
+          "keyfile": "",
+          "ca_trust_chain": ""
+        }
       },
       "db": {
         "password": "",

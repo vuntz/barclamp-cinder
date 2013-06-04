@@ -23,6 +23,27 @@
     %p
       %label{ :for => :service_password }= t('.service_password')
       %input#service_password{:type => "text", :name => "service_password", :'data-default' => @proposal.raw_data['attributes'][@proposal.barclamp]["service_password"], :onchange => "update_value('service_password','service_password', 'string')"}
+
+    %label{ :for => :ssl }= t('.ssl')
+    %div.container{ :id => :ssl }
+      %p
+        %label{ :for => :protocol }= t('.protocol')
+        = select_tag :protocol, options_for_select([['HTTP','http'], ['HTTPS', 'https']], @proposal.raw_data['attributes'][@proposal.barclamp]["api"]["protocol"].to_s), :onchange => "update_value('api/protocol', 'protocol', 'string')"
+
+      %div{ :id => :protocol_div }
+        //TODO/Fixme: provide upload dialog for these. For now we have to rely on the files being present on the machine:
+        %p
+          %label{ :for => :api_ssl_certfile }= t('.api_ssl_certfile')
+          = text_field_tag :api_ssl_certfile, @proposal.raw_data['attributes'][@proposal.barclamp]["api"]["ssl"]["certfile"], :size => 80, :onchange => "update_value('api/ssl/certfile', 'api_ssl_certfile', 'string')"
+
+        %p
+          %label{ :for => :api_ssl_keyfile }= t('.api_ssl_keyfile')
+          = text_field_tag :api_ssl_keyfile, @proposal.raw_data['attributes'][@proposal.barclamp]["api"]["ssl"]["keyfile"], :size => 80, :onchange => "update_value('api/ssl/keyfile', 'api_ssl_keyfile', 'string')"
+
+        %p
+          %label{ :for => :api_ssl_ca_trust_chain }= t('.api_ssl_ca_trust_chain')
+          = text_field_tag :api_ssl_ca_trust_chain, @proposal.raw_data['attributes'][@proposal.barclamp]["api"]["ssl"]["ca_trust_chain"], :size => 80, :onchange => "update_value('api/ssl/ca_trust_chain', 'api_ssl_ca_trust_chain', 'string')"
+
     %p
       %label{ :for => :volume_header }= t('.volume_header')
     %div.container
@@ -175,9 +196,20 @@
     }
   }
 
+  function toggle_protocol() {
+    if ($('#protocol option:selected').attr('value') == 'https') {
+      $('#protocol_div').show();
+    } else {
+      $('#protocol_div').hide();
+    }
+  };
+
   $(document).ready(function(){
+    toggle_protocol();
     update_view();
   });
+
+  $('#protocol').change(toggle_protocol);
 
   // HACK HACK HACK
   // TODO: figure out the better way of overriding this functions

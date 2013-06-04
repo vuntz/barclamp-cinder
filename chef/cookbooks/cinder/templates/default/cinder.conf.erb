@@ -7,6 +7,14 @@ use_syslog=true
 connection_type=libvirt
 sql_connection=<%= @sql_connection %>
 my_ip=<%= node[:cinder][:my_ip] %>
+<% if @ssl -%>
+# CA certificate file to use to verify connecting clients
+ssl_ca_file=<%= @ssl_ca_trust_chain %>
+# Certificate file to use when starting the server securely
+ssl_cert_file=<%= @ssl_certfile %>
+# Private key file to use when starting the server securely
+ssl_key_file=<%= @ssl_keyfile %>
+<% end -%>
 glance_api_servers=<%= @glance_server_ip %>:<%= @glance_server_port %>
 rootwrap_config=/etc/cinder/rootwrap.conf
 auth_strategy=keystone

@@ -26,3 +26,7 @@ node[:cinder][:monitor]={}
 node[:cinder][:monitor][:svcs] = []
 node[:cinder][:monitor][:ports]={}
 
+default[:cinder][:api][:protocol] = "http"
+default[:cinder][:api][:ssl][:certfile] = ""
+default[:cinder][:api][:ssl][:keyfile] = ""
+default[:cinder][:api][:ssl][:ca_trust_chain] = ""

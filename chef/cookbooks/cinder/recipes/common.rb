@@ -160,7 +160,11 @@ template "/etc/cinder/cinder.conf" do
             :sql_connection => sql_connection,
             :rabbit_settings => rabbit_settings,
             :glance_server_ip => glance_server_ip,
-            :glance_server_port => glance_server_port
+            :glance_server_port => glance_server_port,
+            :ssl => node[:cinder][:api][:protocol] == "https",
+            :ssl_certfile => node[:cinder][:api][:ssl][:certfile],
+            :ssl_keyfile => node[:cinder][:api][:ssl][:keyfile],
+            :ssl_ca_trust_chain => node[:cinder][:api][:ssl][:ca_trust_chain]
             )
 end
 

@@ -57,6 +57,7 @@ end
 
 public_api_ip = Chef::Recipe::Barclamp::Inventory.get_network_by_type(node, "public").address
 admin_api_ip = Chef::Recipe::Barclamp::Inventory.get_network_by_type(node, "admin").address
+api_protocol = node[:cinder][:api][:protocol]
 
 keystone_register "cinder api wakeup keystone" do
   protocol keystone_protocol
@@ -106,9 +107,9 @@ keystone_register "register cinder endpoint" do
   token keystone_token
   endpoint_service "cinder"
   endpoint_region "RegionOne"
-  endpoint_publicURL "http://#{public_api_ip}:#{cinder_port}/v1/$(tenant_id)s"
-  endpoint_adminURL "http://#{admin_api_ip}:#{cinder_port}/v1/$(tenant_id)s"
-  endpoint_internalURL "http://#{admin_api_ip}:#{cinder_port}/v1/$(tenant_id)s"
+  endpoint_publicURL "#{api_protocol}://#{public_api_ip}:#{cinder_port}/v1/$(tenant_id)s"
+  endpoint_adminURL "#{api_protocol}://#{admin_api_ip}:#{cinder_port}/v1/$(tenant_id)s"
+  endpoint_internalURL "#{api_protocol}://#{admin_api_ip}:#{cinder_port}/v1/$(tenant_id)s"
 #  endpoint_global true
 #  endpoint_enabled true
   action :add_endpoint_template

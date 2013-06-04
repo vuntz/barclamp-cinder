@@ -68,6 +68,11 @@ locale_additions:
           glance_instance: Glance
           service_user: Service user (for Keystone)
           service_password: Service password
+          ssl: Security Attributes
+          protocol: Protocol
+          api_ssl_certfile: SSL Public Certificate File
+          api_ssl_keyfile: SSL Private Key File
+          api_ssl_ca_trust_chain: SSL Trust Certificate Chain File
           volume_header: Volume options
           volume_type: Type of Volume
           volume_name: Name of Volume
