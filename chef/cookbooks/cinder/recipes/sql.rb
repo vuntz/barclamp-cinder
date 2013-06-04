@@ -79,6 +79,8 @@ database_user "grant database access for cinder database user" do
 end
 
 execute "cinder-manage db sync" do
+  user node[:cinder][:user]
+  group node[:cinder][:group]
   command "#{venv_prefix}cinder-manage db sync"
   action :run
 end
