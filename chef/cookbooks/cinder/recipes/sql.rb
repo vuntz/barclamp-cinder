@@ -82,7 +82,7 @@ execute "cinder-manage db sync" do
   group node[:cinder][:group]
   command "#{venv_prefix}cinder-manage db sync"
   action :run
-end
+end unless %w(suse).include? node.platform
 
 # save data so it can be found by search
 node.save
