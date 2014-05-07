@@ -52,6 +52,7 @@ def make_loopback_volume(node,volname)
   if %w(suse).include? node.platform
     # FIXME: technically, we should regenerate the template when file_name
     # changes; however, since we do not change the volume group...
+    # FIXME: support multiple backends..
     template "boot.looplvm" do
       path "/etc/init.d/boot.looplvm"
       source "boot.looplvm.erb"
@@ -74,14 +75,18 @@ def make_loopback_volume(node,volname)
   end
 end
 
-def make_volume(node,volname,unclaimed_disks,claimed_disks)
+def make_volume(node, volname, unclaimed_disks, claimed_disks, cinder_raw_method)
   return if volume_exists(volname)
+
   Chef::Log.info("Cinder: Using raw disks for volume backing.")
-  if (unclaimed_disks.empty? && claimed_disks.empty?)
+
+  if unclaimed_disks.empty? && claimed_disks.empty?
     Chef::Log.fatal("There are no suitable disks for cinder")
     raise "There are no suitable disks for cinder"
-  elsif claimed_disks.empty?
-    claimed_disks = if node[:cinder][:volume][:cinder_raw_method] == "first"
+  end
+
+  if claimed_disks.empty?
+    claimed_disks = if cinder_raw_method == "first"
                       [unclaimed_disks.first]
                     else
                       unclaimed_disks
@@ -95,6 +100,7 @@ def make_volume(node,volname,unclaimed_disks,claimed_disks)
       end
     end
   end
+
   claimed_disks.each do |disk|
     bash "Create physical volume on #{disk.name}" do
       code <<-EOH
@@ -105,6 +111,7 @@ def make_volume(node,volname,unclaimed_disks,claimed_disks)
       not_if "pvs #{disk.name}"
     end
   end
+
   # Make our volume group.
   bash "Create volume group #{volname}" do
     code "vgcreate #{volname} #{claimed_disks.map{|d|d.name}.join(' ')}"
@@ -112,21 +119,50 @@ def make_volume(node,volname,unclaimed_disks,claimed_disks)
   end
 end
 
+cinder_service("volume")
 
-case
-when node[:cinder][:volume][:volume_type] == "eqlx"
-when node[:cinder][:volume][:volume_type] == "local"
-  volname = node[:cinder][:volume][:local][:volume_name]
-  make_loopback_volume(node, volname)
-when node[:cinder][:volume][:volume_type] == "raw"
-  volname = node[:cinder][:volume][:raw][:volume_name]
-  unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
-  claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
-  make_volume(node, volname, unclaimed_disks, claimed_disks)
-when node[:cinder][:volume][:volume_type] == "netapp"
-when node[:cinder][:volume][:volume_type] == "emc"
-when node[:cinder][:volume][:volume_type] == "manual"
-when node[:cinder][:volume][:volume_type] == "rbd"
+node[:cinder][:volume].each_with_index do |volume, volid|
+  backend_id = "backend-#{volume['backend_driver']}-#{volid}"
+
+  case
+    when volume[:volume_driver] == "emc"
+      template "/etc/cinder/cinder_emc_config-#{backend_id}.xml" do
+        source "cinder_emc_config.xml.erb"
+        owner "root"
+        group node[:cinder][:group]
+        mode 0640
+        variables(
+          :emc_params => volume['emc']
+        )
+      end
+
+    when volume[:volume_driver] == "eqlx"
+
+    when volume[:volume_driver] == "local"
+      make_loopback_volume(node, volume[:local][:volume_name])
+
+    when volume[:volume_driver] == "raw"
+      unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
+      claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
+      make_volume(node, volume[:raw][:volume_name], unclaimed_disks, claimed_disks,
+                  volume[:raw][:cinder_raw_method])
+
+    when volume[:volume_driver] == "netapp"
+      file "/etc/cinder/nfs_shares-#{backend_id}" do
+        content volume[:netapp][:nfs_shares]
+        owner "root"
+        group node[:cinder][:group]
+        mode "0640"
+        action :create
+        notifies :restart, resources(:service => "cinder-volume")
+      end
+
+    when volume[:volume_driver] == "emc"
+
+    when volume[:volume_driver] == "manual"
+
+    when volume[:volume_driver] == "rbd"
+  end
 end
 
 unless %w(redhat centos).include? node.platform
@@ -152,21 +188,6 @@ end
 if %w(suse).include? node.platform
   service "boot.lvm" do
     action [:enable]
-  end
-end
-
-cinder_service("volume")
-
-case
-when node[:cinder][:volume][:volume_type] == "netapp"
-  #TODO(saschpe): change the file location based on the backend name:
-  file '/etc/cinder/nfs_shares' do
-    content node[:cinder][:volume][:netapp][:nfs_shares]
-    owner "root"
-    group node[:cinder][:group]
-    mode "0640"
-    action :create
-    notifies :restart, resources(:service => "cinder-volume")
   end
 end
 
