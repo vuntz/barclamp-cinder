@@ -24,13 +24,13 @@ def volume_exists(volname)
 end
 
 def make_loopback_volume(node, backend_id, volume)
-  return if volume_exists(volname)
-
-  Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
-
   volname = volume[:local][:volume_name]
   fname = volume[:local][:file_name]
   fsize = volume[:local][:file_size] * 1024 * 1024 * 1024 # Convert from GB to Bytes
+
+  return if volume_exists(volname)
+
+  Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
 
   fdir = ::File.dirname(fname)
   # this code will be executed at compile-time so we have to use ruby block
@@ -60,10 +60,10 @@ def make_loopback_volume(node, backend_id, volume)
 end
 
 def make_volume(node, backend_id, volume)
-  return if volume_exists(volname)
-
   volname = volume[:raw][:volume_name]
   cinder_raw_method = volume[:raw][:cinder_raw_method]
+
+  return if volume_exists(volname)
 
   unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
   claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
