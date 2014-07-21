@@ -95,14 +95,14 @@ class CinderService < PacemakerServiceObject
     rbd_ceph_conf = false
 
     proposal["attributes"][@bc_name]["volume"].each do |volume|
-      if volume["volume_driver"] == "local"
+      if volume["backend_driver"] == "local"
         volume_name = volume["local"]["volume_name"]
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
         file_name = volume["local"]["file_name"]
         local_file_names[file_name] = (local_file_names[file_name] || 0) + 1
       end
 
-      if volume["volume_driver"] == "raw"
+      if volume["backend_driver"] == "raw"
         volume_name = volume["raw"]["volume_name"]
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
 
@@ -110,7 +110,7 @@ class CinderService < PacemakerServiceObject
         raw_want_all = (volume["raw"]["cinder_raw_method"] != "first")
       end
 
-      if volume["volume_driver"] == "rbd"
+      if volume["backend_driver"] == "rbd"
         rbd_crowbar ||= volume["rbd"]["use_crowbar"]
         rbd_ceph_conf ||= !volume["rbd"]["use_crowbar"] && (volume["rbd"]["config_file"].strip == "/etc/ceph/ceph.conf")
       end

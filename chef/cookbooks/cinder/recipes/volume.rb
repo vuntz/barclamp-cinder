@@ -115,7 +115,7 @@ node[:cinder][:volume].each_with_index do |volume, volid|
   backend_id = "backend-#{volume['backend_driver']}-#{volid}"
 
   case
-    when volume[:volume_driver] == "emc"
+    when volume[:backend_driver] == "emc"
       template "/etc/cinder/cinder_emc_config-#{backend_id}.xml" do
         source "cinder_emc_config.xml.erb"
         owner "root"
@@ -127,16 +127,16 @@ node[:cinder][:volume].each_with_index do |volume, volid|
         notifies :restart, resources(:service => "cinder-volume")
       end
 
-    when volume[:volume_driver] == "eqlx"
+    when volume[:backend_driver] == "eqlx"
 
-    when volume[:volume_driver] == "local"
+    when volume[:backend_driver] == "local"
       make_loopback_volume(node, backend_id, volume)
       loop_lvm_paths << volume[:local][:file_name]
 
-    when volume[:volume_driver] == "raw"
+    when volume[:backend_driver] == "raw"
       make_volume(node, backend_id, volume)
 
-    when volume[:volume_driver] == "netapp"
+    when volume[:backend_driver] == "netapp"
       file "/etc/cinder/nfs_shares-#{backend_id}" do
         content volume[:netapp][:nfs_shares]
         owner "root"
@@ -146,11 +146,11 @@ node[:cinder][:volume].each_with_index do |volume, volid|
         notifies :restart, resources(:service => "cinder-volume")
       end
 
-    when volume[:volume_driver] == "emc"
+    when volume[:backend_driver] == "emc"
 
-    when volume[:volume_driver] == "manual"
+    when volume[:backend_driver] == "manual"
 
-    when volume[:volume_driver] == "rbd"
+    when volume[:backend_driver] == "rbd"
       unless volume['rbd']['use_crowbar']
         unless ::File.exists? volume['rbd']['config_file']
           message = "Ceph configuration file \"#{volume['rbd']['config_file']}\" is not present."
