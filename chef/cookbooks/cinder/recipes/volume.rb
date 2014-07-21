@@ -23,9 +23,11 @@ def volume_exists(volname)
   Kernel.system("vgs #{volname}")
 end
 
-def make_loopback_volume(node, volname, fname, size)
+def make_loopback_volume(node, backend_id, volname, fname, size)
   return if volume_exists(volname)
-  Chef::Log.info("Cinder: Using local file volume backing")
+
+  Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
+
   fdir = ::File.dirname(fname)
   fsize = size * 1024 * 1024 * 1024 # Convert from GB to Bytes
   # this code will be executed at compile-time so we have to use ruby block
@@ -41,26 +43,26 @@ def make_loopback_volume(node, volname, fname, size)
   max_fsize = ((`df -Pk #{encl_dir}`.split("\n")[1].split(" ")[3].to_i * 1024) * 0.90).to_i rescue 0
   fsize = max_fsize if fsize > max_fsize
 
-  bash "create local volume file" do
+  bash "Create local volume file #{fname}" do
     code "truncate -s #{fsize} #{fname}"
     not_if do
       File.exists?(fname)
     end
   end
 
-  bash "create volume group" do
+  bash "Create volume group #{volname}" do
     code "vgcreate #{volname} `losetup -j #{fname} | cut -f1 -d:`"
     not_if "vgs #{volname}"
   end
 end
 
-def make_volume(node, volname, cinder_raw_method)
+def make_volume(node, backend_id, volname, cinder_raw_method)
   return if volume_exists(volname)
 
   unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
   claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
 
-  Chef::Log.info("Cinder: Using raw disks for volume backing.")
+  Chef::Log.info("Cinder: Using raw disks for volume backing (#{backend_id})")
 
   if unclaimed_disks.empty? && claimed_disks.empty?
     Chef::Log.fatal("There are no suitable disks for cinder")
@@ -122,11 +124,11 @@ node[:cinder][:volume].each_with_index do |volume, volid|
     when volume[:volume_driver] == "eqlx"
 
     when volume[:volume_driver] == "local"
-      make_loopback_volume(node, volume[:local][:volume_name], volume[:local][:file_name], volume[:local][:file_size])
+      make_loopback_volume(node, backend_id, volume[:local][:volume_name], volume[:local][:file_name], volume[:local][:file_size])
       loop_lvm_paths << volume[:local][:file_name]
 
     when volume[:volume_driver] == "raw"
-      make_volume(node, volume[:raw][:volume_name], volume[:raw][:cinder_raw_method])
+      make_volume(node, backend_id, volume[:raw][:volume_name], volume[:raw][:cinder_raw_method])
 
     when volume[:volume_driver] == "netapp"
       file "/etc/cinder/nfs_shares-#{backend_id}" do
