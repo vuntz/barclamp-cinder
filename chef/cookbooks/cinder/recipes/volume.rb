@@ -23,14 +23,11 @@ def volume_exists(volname)
   Kernel.system("vgs #{volname}")
 end
 
-def make_loopback_volume(node, backend_id, volume)
-  volname = volume[:local][:volume_name]
+def make_loopback_file(node, volume)
   fname = volume[:local][:file_name]
   fsize = volume[:local][:file_size] * 1024 * 1024 * 1024 # Convert from GB to Bytes
 
-  return if volume_exists(volname)
-
-  Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
+  return if File.exists?(fname)
 
   fdir = ::File.dirname(fname)
   # this code will be executed at compile-time so we have to use ruby block
@@ -52,6 +49,15 @@ def make_loopback_volume(node, backend_id, volume)
       File.exists?(fname)
     end
   end
+end
+
+def make_loopback_volume(node, backend_id, volume)
+  volname = volume[:local][:volume_name]
+  fname = volume[:local][:file_name]
+
+  return if volume_exists(volname)
+
+  Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
 
   bash "Create volume group #{volname}" do
     code "vgcreate #{volname} `losetup -j #{fname} | cut -f1 -d:`"
@@ -109,7 +115,34 @@ def make_volume(node, backend_id, volume)
   end
 end
 
-loop_lvm_paths = []
+if %w(suse).include? node.platform
+  # We need to create boot.looplvm before we create the volume groups
+  loop_lvm_paths = []
+  node[:cinder][:volume].each do |volume|
+    if volume[:backend_driver] == "local"
+      make_loopback_file(node, volume)
+      loop_lvm_paths << volume[:local][:file_name]
+    end
+  end
+
+  unless loop_lvm_paths.empty?
+    template "boot.looplvm" do
+      path "/etc/init.d/boot.looplvm"
+      source "boot.looplvm.erb"
+      owner "root"
+      group "root"
+      mode 0755
+      variables(:loop_lvm_paths => loop_lvm_paths.map{|x| Shellwords.shellescape(x)}.join(" "))
+    end
+
+    service "boot.looplvm" do
+      supports :start => true, :stop => true
+      action [:enable]
+      # We cannot use reload/restart, since status doesn't return 0 (which is expected since it's not running)
+      subscribes :start, "template[boot.looplvm]", :immediately
+    end
+  end
+end
 
 node[:cinder][:volume].each_with_index do |volume, volid|
   backend_id = "backend-#{volume['backend_driver']}-#{volid}"
@@ -131,7 +164,6 @@ node[:cinder][:volume].each_with_index do |volume, volid|
 
     when volume[:backend_driver] == "local"
       make_loopback_volume(node, backend_id, volume)
-      loop_lvm_paths << volume[:local][:file_name]
 
     when volume[:backend_driver] == "raw"
       make_volume(node, backend_id, volume)
@@ -158,23 +190,6 @@ node[:cinder][:volume].each_with_index do |volume, volid|
           raise message
         end
       end
-  end
-end
-
-if %w(suse).include? node.platform && !loop_lvm_paths.empty?
-  template "boot.looplvm" do
-    path "/etc/init.d/boot.looplvm"
-    source "boot.looplvm.erb"
-    owner "root"
-    group "root"
-    mode 0755
-    variables(:loop_lvm_paths => loop_lvm_paths.map{|x| "\"#{Shellwords.shellescape(x)}\""}.join(" "))
-  end
-
-  service "boot.looplvm" do
-    supports :start => true, :stop => true
-    action [:enable]
-    subscribes :reload, "template[boot.looplvm]", :immediately
   end
 end
 
