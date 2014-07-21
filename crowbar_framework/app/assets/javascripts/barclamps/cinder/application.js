@@ -120,7 +120,7 @@ $(document).ready(function($) {
   $('#add_cinder_backend').click(function() {
     var new_backend = {
       'backend_driver': $('#volume_backend_driver').val(),
-      'backend_name': $('#add_backend_name').val() || $('#volume_backend_driver').val(),
+      'backend_name': $('#volume_backend_name').val() || $('#volume_backend_driver').val(),
     };
     var driver = new_backend['backend_driver'];
     new_backend[driver] = $('#proposal_attributes').readJsonAttribute('volume_defaults/' + driver);
@@ -131,7 +131,7 @@ $(document).ready(function($) {
 
     // Reset field entries
     $('#volume_backend_driver').val('raw')
-    $('#add_backend_name').val('')
+    $('#volume_backend_name').val('')
 
     redisplay_backends();
   });

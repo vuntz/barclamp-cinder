@@ -145,9 +145,9 @@
           = t(".volume.addheader")
 
         = select_field %w(volume backend_driver), :collection => :volume_driver_for_cinder
-        = string_field %w(volume addname), {:id => 'add_backend_name'}
+        = string_field %w(volume backend_name)
         %span.help-block
-          = t(".volume.addname_hint")
+          = t(".volume.backend_name_hint")
 
         %div.form-group.pull-left
           %input(id='add_cinder_backend' class="form-control" type="button" value="Add Backend")

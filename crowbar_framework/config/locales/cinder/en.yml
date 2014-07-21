@@ -29,8 +29,8 @@ en:
           "0":
             backend_driver: 'Type of Volume'
           addheader: 'Add new Cinder Backend'
-          addname: 'Name for Backend'
-          addname_hint: 'The names for backends do not have to be unique; if several backends share the same name, the Cinder scheduler will choose the most suitable backend.'
+          backend_name: 'Name for Backend'
+          backend_name_hint: 'The names for backends do not have to be unique; if several backends share the same name, the Cinder scheduler will choose the most suitable backend.'
           backend_driver: 'Type of Volume'
           emc_parameters: 'EMC Parameters'
           emc_volume_driver: 'EMC'
