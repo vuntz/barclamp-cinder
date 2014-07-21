@@ -87,8 +87,18 @@ class CinderService < PacemakerServiceObject
     validate_one_for_role proposal, "cinder-controller"
     validate_at_least_n_for_role proposal, "cinder-volume", 1
 
+    volume_names = {}
+
     proposal["attributes"][@bc_name]["volume"].each do |volume|
+      if volume["volume_driver"] == "local"
+        volume_name = volume["local"]["volume_name"]
+        volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
+      end
+
       if volume["volume_driver"] == "raw"
+        volume_name = volume["raw"]["volume_name"]
+        volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
+
         nodes_without_suitable_drives = proposal["deployment"][@bc_name]["elements"]["cinder-volume"].select do |node_name|
           node = NodeObject.find_node_by_name(node_name)
           node && node.unclaimed_physical_drives.empty? && node.physical_drives.none? { |d, data| node.disk_owner(node.unique_device_for(d)) == 'Cinder' }
@@ -96,6 +106,12 @@ class CinderService < PacemakerServiceObject
         unless nodes_without_suitable_drives.empty?
           validation_error("Nodes #{nodes_without_suitable_drives.to_sentence} for cinder volume role are missing at least one unclaimed disk, required when using raw devices.")
         end
+      end
+    end
+
+    volume_names.each do |volume_name, count|
+      if count > 1
+        validation_error("#{count} backends are using \"#{volume_name}\" as LVM volume name.")
       end
     end
 
