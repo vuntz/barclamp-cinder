@@ -129,6 +129,10 @@ $(document).ready(function($) {
     volumes.push(new_backend);
     $('#proposal_attributes').writeJsonAttribute('volume', volumes);
 
+    // Reset field entries
+    $('#volume_backend_driver').val('raw')
+    $('#add_backend_name').val('')
+
     redisplay_backends();
   });
 
