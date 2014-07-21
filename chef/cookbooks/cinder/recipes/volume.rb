@@ -131,6 +131,7 @@ node[:cinder][:volume].each_with_index do |volume, volid|
         variables(
           :emc_params => volume['emc']
         )
+        notifies :restart, resources(:service => "cinder-volume")
       end
 
     when volume[:volume_driver] == "eqlx"
