@@ -131,19 +131,19 @@ class CinderService < PacemakerServiceObject
     if raw_count > 0
         if raw_count > 1 && raw_want_all
           validation_error("There cannot be multiple raw devices backends when one raw device backend is configured to use all disks.")
-        end
-
-        nodes_without_suitable_drives = proposal["deployment"][@bc_name]["elements"]["cinder-volume"].select do |node_name|
-          node = NodeObject.find_node_by_name(node_name)
-          if node.nil?
-            false
-          else
-            candidate_disks_count = node.unclaimed_physical_drives.length + node.physical_drives.select { |d, data| node.disk_owner(node.unique_device_for(d)) == 'Cinder' }.length
-            candidate_disks_count < raw_count
+        else
+          nodes_without_suitable_drives = proposal["deployment"][@bc_name]["elements"]["cinder-volume"].select do |node_name|
+            node = NodeObject.find_node_by_name(node_name)
+            if node.nil?
+              false
+            else
+              candidate_disks_count = node.unclaimed_physical_drives.length + node.physical_drives.select { |d, data| node.disk_owner(node.unique_device_for(d)) == 'Cinder' }.length
+              candidate_disks_count < raw_count
+            end
           end
-        end
-        unless nodes_without_suitable_drives.empty?
-          validation_error("Nodes #{nodes_without_suitable_drives.to_sentence} for cinder volume role are missing at least one unclaimed disk, required when using raw devices.")
+          unless nodes_without_suitable_drives.empty?
+            validation_error("Nodes #{nodes_without_suitable_drives.to_sentence} for cinder volume role are missing at least one unclaimed disk, required when using raw devices.")
+          end
         end
     end
 
