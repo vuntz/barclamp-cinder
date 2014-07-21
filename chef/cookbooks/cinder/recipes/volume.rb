@@ -23,13 +23,16 @@ def volume_exists(volname)
   Kernel.system("vgs #{volname}")
 end
 
-def make_loopback_volume(node, backend_id, volname, fname, size)
+def make_loopback_volume(node, backend_id, volume)
   return if volume_exists(volname)
 
   Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
 
+  volname = volume[:local][:volume_name]
+  fname = volume[:local][:file_name]
+  fsize = volume[:local][:file_size] * 1024 * 1024 * 1024 # Convert from GB to Bytes
+
   fdir = ::File.dirname(fname)
-  fsize = size * 1024 * 1024 * 1024 # Convert from GB to Bytes
   # this code will be executed at compile-time so we have to use ruby block
   # or get fs capacity from parent directory because at compile-time we have
   # no package resources done
@@ -56,8 +59,11 @@ def make_loopback_volume(node, backend_id, volname, fname, size)
   end
 end
 
-def make_volume(node, backend_id, volname, cinder_raw_method)
+def make_volume(node, backend_id, volume)
   return if volume_exists(volname)
+
+  volname = volume[:raw][:volume_name]
+  cinder_raw_method = volume[:raw][:cinder_raw_method]
 
   unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
   claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
@@ -124,11 +130,11 @@ node[:cinder][:volume].each_with_index do |volume, volid|
     when volume[:volume_driver] == "eqlx"
 
     when volume[:volume_driver] == "local"
-      make_loopback_volume(node, backend_id, volume[:local][:volume_name], volume[:local][:file_name], volume[:local][:file_size])
+      make_loopback_volume(node, backend_id, volume)
       loop_lvm_paths << volume[:local][:file_name]
 
     when volume[:volume_driver] == "raw"
-      make_volume(node, backend_id, volume[:raw][:volume_name], volume[:raw][:cinder_raw_method])
+      make_volume(node, backend_id, volume)
 
     when volume[:volume_driver] == "netapp"
       file "/etc/cinder/nfs_shares-#{backend_id}" do
