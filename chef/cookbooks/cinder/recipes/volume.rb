@@ -48,26 +48,6 @@ def make_loopback_volume(node, volname, fname, size)
     end
   end
 
-  if %w(suse).include? node.platform
-    # FIXME: technically, we should regenerate the template when file_name
-    # changes; however, since we do not change the volume group...
-    # FIXME: support multiple backends..
-    template "boot.looplvm" do
-      path "/etc/init.d/boot.looplvm"
-      source "boot.looplvm.erb"
-      owner "root"
-      group "root"
-      mode 0755
-      variables(:loop_lvm_path => fname)
-    end
-
-    service "boot.looplvm" do
-      supports :start => true, :stop => true
-      action [:enable, :start]
-      subscribes :reload, "template[boot.looplvm]", :immediately
-    end
-  end
-
   bash "create volume group" do
     code "vgcreate #{volname} `losetup -j #{fname} | cut -f1 -d:`"
     not_if "vgs #{volname}"
@@ -118,6 +98,8 @@ def make_volume(node, volname, unclaimed_disks, claimed_disks, cinder_raw_method
   end
 end
 
+loop_lvm_paths = []
+
 node[:cinder][:volume].each_with_index do |volume, volid|
   backend_id = "backend-#{volume['backend_driver']}-#{volid}"
 
@@ -138,6 +120,7 @@ node[:cinder][:volume].each_with_index do |volume, volid|
 
     when volume[:volume_driver] == "local"
       make_loopback_volume(node, volume[:local][:volume_name], volume[:local][:file_name], volume[:local][:file_size])
+      loop_lvm_paths << volume[:local][:file_name]
 
     when volume[:volume_driver] == "raw"
       unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
@@ -160,6 +143,23 @@ node[:cinder][:volume].each_with_index do |volume, volid|
     when volume[:volume_driver] == "manual"
 
     when volume[:volume_driver] == "rbd"
+  end
+end
+
+if %w(suse).include? node.platform && !loop_lvm_paths.empty?
+  template "boot.looplvm" do
+    path "/etc/init.d/boot.looplvm"
+    source "boot.looplvm.erb"
+    owner "root"
+    group "root"
+    mode 0755
+    variables(:loop_lvm_paths => loop_lvm_paths.map{|x| "\"#{Shellwords.shellescape(x)}\""}.join(" "))
+  end
+
+  service "boot.looplvm" do
+    supports :start => true, :stop => true
+    action [:enable]
+    subscribes :reload, "template[boot.looplvm]", :immediately
   end
 end
 
