@@ -102,6 +102,10 @@
               %legend
                 = t('.volume.rbd_parameters')
 
+              = boolean_field %w(volume {{@index}} rbd use_crowbar) "data-showit" => "true", "data-showit-target" => "#rbd_config_file_{{@index}}", "data-showit-direct" => "true"
+              #rbd_config_file_{{@index}}
+                = string_field %w(volume {{@index}} rbd config_file)
+
               = string_field %w(volume {{@index}} rbd pool)
               = string_field %w(volume {{@index}} rbd user)
 

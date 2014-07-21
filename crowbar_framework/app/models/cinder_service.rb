@@ -91,6 +91,8 @@ class CinderService < PacemakerServiceObject
     local_file_names = {}
     raw_count = 0
     raw_want_all = false
+    rbd_crowbar = false
+    rbd_ceph_conf = false
 
     proposal["attributes"][@bc_name]["volume"].each do |volume|
       if volume["volume_driver"] == "local"
@@ -106,6 +108,11 @@ class CinderService < PacemakerServiceObject
 
         raw_count += 1
         raw_want_all = (volume["raw"]["cinder_raw_method"] != "first")
+      end
+
+      if volume["volume_driver"] == "rbd"
+        rbd_crowbar ||= volume["rbd"]["use_crowbar"]
+        rbd_ceph_conf ||= !volume["rbd"]["use_crowbar"] && (volume["rbd"]["config_file"].strip == "/etc/ceph/ceph.conf")
       end
     end
 
@@ -138,6 +145,10 @@ class CinderService < PacemakerServiceObject
         unless nodes_without_suitable_drives.empty?
           validation_error("Nodes #{nodes_without_suitable_drives.to_sentence} for cinder volume role are missing at least one unclaimed disk, required when using raw devices.")
         end
+    end
+
+    if rbd_crowbar && rbd_ceph_conf
+      validation_error("RADOS backends not deployed with Crowbar cannot use /etc/ceph/ceph.conf as configuration files when also using the RADOS backend deployed with Crowbar.")
     end
 
     if proposal["attributes"][@bc_name]["use_gitrepo"]

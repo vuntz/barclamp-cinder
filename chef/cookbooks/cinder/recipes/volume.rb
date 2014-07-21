@@ -151,6 +151,13 @@ node[:cinder][:volume].each_with_index do |volume, volid|
     when volume[:volume_driver] == "manual"
 
     when volume[:volume_driver] == "rbd"
+      unless volume['rbd']['use_crowbar']
+        unless ::File.exists? volume['rbd']['config_file']
+          message = "Ceph configuration file \"#{volume['rbd']['config_file']}\" is not present."
+          Chef::Log.fatal(message)
+          raise message
+        end
+      end
   end
 end
 
