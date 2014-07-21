@@ -146,11 +146,16 @@ rabbit_settings = {
 
 node[:cinder][:volume].each_with_index do |volume, volid|
   if volume['backend_driver'] == "rbd"
-    ### Needs porting for multiple backends
-    ceph_env_filter = " AND ceph_config_environment:ceph-config-default"
-    ceph_servers = search(:node, "roles:ceph-osd#{ceph_env_filter}") || []
-    if ceph_servers.length > 0
-      include_recipe "ceph::cinder"
+    if volume['rbd']['use_crowbar']
+      ceph_env_filter = " AND ceph_config_environment:ceph-config-default"
+      ceph_servers = search(:node, "roles:ceph-osd#{ceph_env_filter}") || []
+      if ceph_servers.length > 0
+        include_recipe "ceph::cinder"
+      else
+        message = "Ceph was not deployed with Crowbar yet!"
+        Chef::Log.fatal(message)
+        raise message
+      end
     end
 
     if node[:platform] == "suse"

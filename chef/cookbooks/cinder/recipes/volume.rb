@@ -23,12 +23,16 @@ def volume_exists(volname)
   Kernel.system("vgs #{volname}")
 end
 
-def make_loopback_volume(node,volname)
+def make_loopback_volume(node, backend_id, volume)
   return if volume_exists(volname)
-  Chef::Log.info("Cinder: Using local file volume backing")
-  fname = node["cinder"]["volume"][:local][:file_name]
+
+  Chef::Log.info("Cinder: Using local file volume backing (#{backend_id})")
+
+  volname = volume[:local][:volume_name]
+  fname = volume[:local][:file_name]
+  fsize = volume[:local][:file_size] * 1024 * 1024 * 1024 # Convert from GB to Bytes
+
   fdir = ::File.dirname(fname)
-  fsize = node["cinder"]["volume"][:local][:file_size] * 1024 * 1024 * 1024 # Convert from GB to Bytes
   # this code will be executed at compile-time so we have to use ruby block
   # or get fs capacity from parent directory because at compile-time we have
   # no package resources done
@@ -42,43 +46,29 @@ def make_loopback_volume(node,volname)
   max_fsize = ((`df -Pk #{encl_dir}`.split("\n")[1].split(" ")[3].to_i * 1024) * 0.90).to_i rescue 0
   fsize = max_fsize if fsize > max_fsize
 
-  bash "create local volume file" do
+  bash "Create local volume file #{fname}" do
     code "truncate -s #{fsize} #{fname}"
     not_if do
       File.exists?(fname)
     end
   end
 
-  if %w(suse).include? node.platform
-    # FIXME: technically, we should regenerate the template when file_name
-    # changes; however, since we do not change the volume group...
-    # FIXME: support multiple backends..
-    template "boot.looplvm" do
-      path "/etc/init.d/boot.looplvm"
-      source "boot.looplvm.erb"
-      owner "root"
-      group "root"
-      mode 0755
-      variables(:loop_lvm_path => fname)
-    end
-
-    service "boot.looplvm" do
-      supports :start => true, :stop => true
-      action [:enable, :start]
-      subscribes :reload, "template[boot.looplvm]", :immediately
-    end
-  end
-
-  bash "create volume group" do
+  bash "Create volume group #{volname}" do
     code "vgcreate #{volname} `losetup -j #{fname} | cut -f1 -d:`"
     not_if "vgs #{volname}"
   end
 end
 
-def make_volume(node, volname, unclaimed_disks, claimed_disks, cinder_raw_method)
+def make_volume(node, backend_id, volume)
   return if volume_exists(volname)
 
-  Chef::Log.info("Cinder: Using raw disks for volume backing.")
+  volname = volume[:raw][:volume_name]
+  cinder_raw_method = volume[:raw][:cinder_raw_method]
+
+  unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
+  claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
+
+  Chef::Log.info("Cinder: Using raw disks for volume backing (#{backend_id})")
 
   if unclaimed_disks.empty? && claimed_disks.empty?
     Chef::Log.fatal("There are no suitable disks for cinder")
@@ -119,13 +109,13 @@ def make_volume(node, volname, unclaimed_disks, claimed_disks, cinder_raw_method
   end
 end
 
-cinder_service("volume")
+loop_lvm_paths = []
 
 node[:cinder][:volume].each_with_index do |volume, volid|
   backend_id = "backend-#{volume['backend_driver']}-#{volid}"
 
   case
-    when volume[:volume_driver] == "emc"
+    when volume[:backend_driver] == "emc"
       template "/etc/cinder/cinder_emc_config-#{backend_id}.xml" do
         source "cinder_emc_config.xml.erb"
         owner "root"
@@ -134,20 +124,19 @@ node[:cinder][:volume].each_with_index do |volume, volid|
         variables(
           :emc_params => volume['emc']
         )
+        notifies :restart, resources(:service => "cinder-volume")
       end
 
-    when volume[:volume_driver] == "eqlx"
+    when volume[:backend_driver] == "eqlx"
 
-    when volume[:volume_driver] == "local"
-      make_loopback_volume(node, volume[:local][:volume_name])
+    when volume[:backend_driver] == "local"
+      make_loopback_volume(node, backend_id, volume)
+      loop_lvm_paths << volume[:local][:file_name]
 
-    when volume[:volume_driver] == "raw"
-      unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
-      claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
-      make_volume(node, volume[:raw][:volume_name], unclaimed_disks, claimed_disks,
-                  volume[:raw][:cinder_raw_method])
+    when volume[:backend_driver] == "raw"
+      make_volume(node, backend_id, volume)
 
-    when volume[:volume_driver] == "netapp"
+    when volume[:backend_driver] == "netapp"
       file "/etc/cinder/nfs_shares-#{backend_id}" do
         content volume[:netapp][:nfs_shares]
         owner "root"
@@ -157,13 +146,39 @@ node[:cinder][:volume].each_with_index do |volume, volid|
         notifies :restart, resources(:service => "cinder-volume")
       end
 
-    when volume[:volume_driver] == "emc"
+    when volume[:backend_driver] == "emc"
 
-    when volume[:volume_driver] == "manual"
+    when volume[:backend_driver] == "manual"
 
-    when volume[:volume_driver] == "rbd"
+    when volume[:backend_driver] == "rbd"
+      unless volume['rbd']['use_crowbar']
+        unless ::File.exists? volume['rbd']['config_file']
+          message = "Ceph configuration file \"#{volume['rbd']['config_file']}\" is not present."
+          Chef::Log.fatal(message)
+          raise message
+        end
+      end
   end
 end
+
+if %w(suse).include? node.platform && !loop_lvm_paths.empty?
+  template "boot.looplvm" do
+    path "/etc/init.d/boot.looplvm"
+    source "boot.looplvm.erb"
+    owner "root"
+    group "root"
+    mode 0755
+    variables(:loop_lvm_paths => loop_lvm_paths.map{|x| "\"#{Shellwords.shellescape(x)}\""}.join(" "))
+  end
+
+  service "boot.looplvm" do
+    supports :start => true, :stop => true
+    action [:enable]
+    subscribes :reload, "template[boot.looplvm]", :immediately
+  end
+end
+
+cinder_service("volume")
 
 unless %w(redhat centos).include? node.platform
  package "tgt"
