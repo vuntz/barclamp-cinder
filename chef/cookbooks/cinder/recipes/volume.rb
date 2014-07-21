@@ -118,8 +118,6 @@ def make_volume(node, volname, unclaimed_disks, claimed_disks, cinder_raw_method
   end
 end
 
-cinder_service("volume")
-
 node[:cinder][:volume].each_with_index do |volume, volid|
   backend_id = "backend-#{volume['backend_driver']}-#{volid}"
 
@@ -163,6 +161,8 @@ node[:cinder][:volume].each_with_index do |volume, volid|
     when volume[:volume_driver] == "rbd"
   end
 end
+
+cinder_service("volume")
 
 unless %w(redhat centos).include? node.platform
  package "tgt"
