@@ -33,8 +33,8 @@
         "pip://MySQL-python",
         "pip://python-cinderclient>=1.0.5"
       ],
+      "use_multi_backend": true,
       "volume_defaults": {
-        "use_multi_backend": true,
         "raw": {
           "volume_name": "cinder-volumes",
           "cinder_raw_method": "first"

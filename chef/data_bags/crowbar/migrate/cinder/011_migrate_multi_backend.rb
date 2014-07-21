@@ -13,7 +13,7 @@ def upgrade ta, td, a, d
   a['volume_defaults'] = ta['volume_defaults']
 
   # Disable Multi backend support on migration
-  a['volume_defaults']['use_multi_backend'] = false
+  a['use_multi_backend'] = false
 
   return a, d
 end
@@ -27,8 +27,9 @@ def downgrade ta, td, a, d
   a['volume'][current_backend_driver] = current_volume
   # Rename backend_driver back to volume_type
   a['volume']['volume_type'] = current_backend_driver
-  a['volume'].delete 'use_multi_backend'
+
   a.delete 'volume_defaults'
+  a.delete 'use_multi_backend'
 
   return a, d
 end

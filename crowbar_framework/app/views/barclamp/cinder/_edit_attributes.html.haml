@@ -133,13 +133,13 @@
       %legend
         = t(".volume.listheader")
 
-      - if !@proposal.pretty_attributes.volume_defaults.use_multi_backend
+      - if !@proposal.pretty_attributes.use_multi_backend
         = select_field ["volume", 0, "backend_driver"], :collection => :volume_driver_for_cinder
 
       %div#cinder_backends
         = t(".volume.loading_text")
 
-    - if @proposal.pretty_attributes.volume_defaults.use_multi_backend
+    - if @proposal.pretty_attributes.use_multi_backend
       %fieldset
         %legend
           = t(".volume.addheader")

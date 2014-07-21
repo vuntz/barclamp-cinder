@@ -28,7 +28,7 @@ $(document).ready(function($) {
   });
 
   var use_multi_backend = $('#proposal_attributes').readJsonAttribute(
-                            'volume_defaults/use_multi_backend', {});
+                            'use_multi_backend', false);
 
   function cb_cinder_volume_delete()
   {
