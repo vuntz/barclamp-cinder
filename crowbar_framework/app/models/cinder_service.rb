@@ -88,6 +88,7 @@ class CinderService < PacemakerServiceObject
     validate_at_least_n_for_role proposal, "cinder-volume", 1
 
     volume_names = {}
+    raw_count = 0
 
     proposal["attributes"][@bc_name]["volume"].each do |volume|
       if volume["volume_driver"] == "local"
@@ -99,13 +100,7 @@ class CinderService < PacemakerServiceObject
         volume_name = volume["raw"]["volume_name"]
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
 
-        nodes_without_suitable_drives = proposal["deployment"][@bc_name]["elements"]["cinder-volume"].select do |node_name|
-          node = NodeObject.find_node_by_name(node_name)
-          node && node.unclaimed_physical_drives.empty? && node.physical_drives.none? { |d, data| node.disk_owner(node.unique_device_for(d)) == 'Cinder' }
-        end
-        unless nodes_without_suitable_drives.empty?
-          validation_error("Nodes #{nodes_without_suitable_drives.to_sentence} for cinder volume role are missing at least one unclaimed disk, required when using raw devices.")
-        end
+        raw_count += 1
       end
     end
 
@@ -113,6 +108,21 @@ class CinderService < PacemakerServiceObject
       if count > 1
         validation_error("#{count} backends are using \"#{volume_name}\" as LVM volume name.")
       end
+    end
+
+    if raw_count > 0
+        nodes_without_suitable_drives = proposal["deployment"][@bc_name]["elements"]["cinder-volume"].select do |node_name|
+          node = NodeObject.find_node_by_name(node_name)
+          if node.nil?
+            false
+          else
+            candidate_disks_count = node.unclaimed_physical_drives.length + node.physical_drives.select { |d, data| node.disk_owner(node.unique_device_for(d)) == 'Cinder' }.length
+            candidate_disks_count < raw_count
+          end
+        end
+        unless nodes_without_suitable_drives.empty?
+          validation_error("Nodes #{nodes_without_suitable_drives.to_sentence} for cinder volume role are missing at least one unclaimed disk, required when using raw devices.")
+        end
     end
 
     if proposal["attributes"][@bc_name]["use_gitrepo"]

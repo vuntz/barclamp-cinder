@@ -54,8 +54,11 @@ def make_loopback_volume(node, volname, fname, size)
   end
 end
 
-def make_volume(node, volname, unclaimed_disks, claimed_disks, cinder_raw_method)
+def make_volume(node, volname, cinder_raw_method)
   return if volume_exists(volname)
+
+  unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
+  claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
 
   Chef::Log.info("Cinder: Using raw disks for volume backing.")
 
@@ -123,10 +126,7 @@ node[:cinder][:volume].each_with_index do |volume, volid|
       loop_lvm_paths << volume[:local][:file_name]
 
     when volume[:volume_driver] == "raw"
-      unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
-      claimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.claimed(node, "Cinder")
-      make_volume(node, volume[:raw][:volume_name], unclaimed_disks, claimed_disks,
-                  volume[:raw][:cinder_raw_method])
+      make_volume(node, volume[:raw][:volume_name], volume[:raw][:cinder_raw_method])
 
     when volume[:volume_driver] == "netapp"
       file "/etc/cinder/nfs_shares-#{backend_id}" do
