@@ -89,6 +89,7 @@ class CinderService < PacemakerServiceObject
 
     volume_names = {}
     raw_count = 0
+    raw_want_all = false
 
     proposal["attributes"][@bc_name]["volume"].each do |volume|
       if volume["volume_driver"] == "local"
@@ -101,6 +102,7 @@ class CinderService < PacemakerServiceObject
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
 
         raw_count += 1
+        raw_want_all = (volume["raw"]["cinder_raw_method"] != "first")
       end
     end
 
@@ -111,6 +113,10 @@ class CinderService < PacemakerServiceObject
     end
 
     if raw_count > 0
+        if raw_count > 1 && raw_want_all
+          validation_error("There cannot be multiple raw devices backends when one raw device backend is configured to use all disks.")
+        end
+
         nodes_without_suitable_drives = proposal["deployment"][@bc_name]["elements"]["cinder-volume"].select do |node_name|
           node = NodeObject.find_node_by_name(node_name)
           if node.nil?
