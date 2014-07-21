@@ -98,6 +98,7 @@ class CinderService < PacemakerServiceObject
       if volume["backend_driver"] == "local"
         volume_name = volume["local"]["volume_name"]
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
+
         file_name = volume["local"]["file_name"]
         local_file_names[file_name] = (local_file_names[file_name] || 0) + 1
       end
@@ -123,6 +124,16 @@ class CinderService < PacemakerServiceObject
     end
 
     local_file_names.each do |file_name, count|
+      if file_name.empty?
+        validation_error("Invalid file name \"#{file_name}\" for local file-based LVM: file name cannot be empty.")
+      elsif file_name[0,1] != "/"
+        validation_error("Invalid file name \"#{file_name}\" for local file-based LVM: file name must be an absolute path.")
+      end
+
+      if file_name =~ /\s/
+        validation_error("Invalid file name \"#{file_name}\" for local file-based LVM: file name cannot contain whitespaces.")
+      end
+
       if count > 1
         validation_error("#{count} backends are using \"#{file_name}\" for local file-based LVM.")
       end
