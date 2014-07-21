@@ -27,7 +27,6 @@ def downgrade ta, td, a, d
   a['volume'][current_backend_driver] = current_volume
   # Rename backend_driver back to volume_type
   a['volume']['volume_type'] = current_backend_driver
-  a['volume'].delete 'volume_driver'
   a['volume'].delete 'use_multi_backend'
   a.delete 'volume_defaults'
 

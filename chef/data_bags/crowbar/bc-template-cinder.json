@@ -34,7 +34,6 @@
         "pip://python-cinderclient>=1.0.5"
       ],
       "volume_defaults": {
-        "volume_driver": "raw",
         "use_multi_backend": true,
         "raw": {
           "volume_name": "cinder-volumes",

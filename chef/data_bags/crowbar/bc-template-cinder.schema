@@ -34,7 +34,6 @@
               "required": true,
               "mapping": {
                 "use_multi_backend": { "type": "bool", "required": true },
-                "volume_driver": { "type": "str", "required": true},
                 "local": {
                 "type": "map", "mapping": {
                     "volume_name": { "type": "str", "required": true },
