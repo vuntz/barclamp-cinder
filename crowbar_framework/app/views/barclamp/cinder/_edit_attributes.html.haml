@@ -146,6 +146,8 @@
 
         = select_field %w(volume backend_driver), :collection => :volume_driver_for_cinder
         = string_field %w(volume addname), {:id => 'add_backend_name'}
+        %span.help-block
+          = t(".volume.addname_hint")
 
         %input(id='add_cinder_backend' class="form-control" type="button" value="Add")
 
