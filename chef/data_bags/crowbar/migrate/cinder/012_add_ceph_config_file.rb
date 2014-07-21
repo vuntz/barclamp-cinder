@@ -16,8 +16,8 @@ def downgrade ta, td, a, d
   a['volume_defaults']['rbd'].delete 'config_file'
   a['volume'].each do |volume|
     next if volume['backend_driver'] != 'rbd'
-    volume['rbd'.delete 'use_crowbar'
-    volume['rbd'.delete 'config_file'
+    volume['rbd'].delete 'use_crowbar'
+    volume['rbd'].delete 'config_file'
   end
 
   return a, d
