@@ -23,12 +23,11 @@ def volume_exists(volname)
   Kernel.system("vgs #{volname}")
 end
 
-def make_loopback_volume(node,volname)
+def make_loopback_volume(node, volname, fname, size)
   return if volume_exists(volname)
   Chef::Log.info("Cinder: Using local file volume backing")
-  fname = node["cinder"]["volume"][:local][:file_name]
   fdir = ::File.dirname(fname)
-  fsize = node["cinder"]["volume"][:local][:file_size] * 1024 * 1024 * 1024 # Convert from GB to Bytes
+  fsize = size * 1024 * 1024 * 1024 # Convert from GB to Bytes
   # this code will be executed at compile-time so we have to use ruby block
   # or get fs capacity from parent directory because at compile-time we have
   # no package resources done
@@ -139,7 +138,7 @@ node[:cinder][:volume].each_with_index do |volume, volid|
     when volume[:volume_driver] == "eqlx"
 
     when volume[:volume_driver] == "local"
-      make_loopback_volume(node, volume[:local][:volume_name])
+      make_loopback_volume(node, volume[:local][:volume_name], volume[:local][:file_name], volume[:local][:file_size])
 
     when volume[:volume_driver] == "raw"
       unclaimed_disks = BarclampLibrary::Barclamp::Inventory::Disk.unclaimed(node)
