@@ -88,6 +88,7 @@ class CinderService < PacemakerServiceObject
     validate_at_least_n_for_role proposal, "cinder-volume", 1
 
     volume_names = {}
+    local_file_names = {}
     raw_count = 0
     raw_want_all = false
 
@@ -95,6 +96,8 @@ class CinderService < PacemakerServiceObject
       if volume["volume_driver"] == "local"
         volume_name = volume["local"]["volume_name"]
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1
+        file_name = volume["local"]["file_name"]
+        local_file_names[file_name] = (local_file_names[file_name] || 0) + 1
       end
 
       if volume["volume_driver"] == "raw"
@@ -109,6 +112,12 @@ class CinderService < PacemakerServiceObject
     volume_names.each do |volume_name, count|
       if count > 1
         validation_error("#{count} backends are using \"#{volume_name}\" as LVM volume name.")
+      end
+    end
+
+    local_file_names.each do |file_name, count|
+      if count > 1
+        validation_error("#{count} backends are using \"#{file_name}\" for local file-based LVM.")
       end
     end
 
