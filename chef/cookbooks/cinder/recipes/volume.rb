@@ -115,16 +115,21 @@ def make_volume(node, backend_id, volume)
   end
 end
 
-if %w(suse).include? node.platform
-  # We need to create boot.looplvm before we create the volume groups
-  loop_lvm_paths = []
-  node[:cinder][:volume].each do |volume|
-    if volume[:backend_driver] == "local"
-      make_loopback_file(node, volume)
-      loop_lvm_paths << volume[:local][:file_name]
-    end
-  end
+### Loop 1 over volumes
+# this is required because of the boot.looplvm that need to be created before
+# we create the LVM volume groups
+loop_lvm_paths = []
 
+node[:cinder][:volume].each do |volume|
+  if volume[:backend_driver] == "local"
+    make_loopback_file(node, volume)
+    loop_lvm_paths << volume[:local][:file_name]
+  end
+end
+
+if %w(suse).include? node.platform
+  # We need to create boot.looplvm before we create the volume groups; note
+  # that the loopback files need to exist before we can use this script
   unless loop_lvm_paths.empty?
     template "boot.looplvm" do
       path "/etc/init.d/boot.looplvm"
@@ -144,6 +149,8 @@ if %w(suse).include? node.platform
   end
 end
 
+### Loop 2 over volumes
+# now do everything else we need to do
 have_rbd = false
 include_ceph_recipe = false
 
