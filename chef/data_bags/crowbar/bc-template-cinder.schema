@@ -102,7 +102,7 @@
                 }
               }
             },
-            "volume": {
+            "volumes": {
               "type": "seq",
               "required": true,
               "sequence": [ {

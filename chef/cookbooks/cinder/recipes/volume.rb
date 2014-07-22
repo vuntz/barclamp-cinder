@@ -120,7 +120,7 @@ end
 # we create the LVM volume groups
 loop_lvm_paths = []
 
-node[:cinder][:volume].each do |volume|
+node[:cinder][:volumes].each do |volume|
   if volume[:backend_driver] == "local"
     make_loopback_file(node, volume)
     loop_lvm_paths << volume[:local][:file_name]
@@ -154,7 +154,7 @@ end
 have_rbd = false
 include_ceph_recipe = false
 
-node[:cinder][:volume].each_with_index do |volume, volid|
+node[:cinder][:volumes].each_with_index do |volume, volid|
   backend_id = "backend-#{volume['backend_driver']}-#{volid}"
 
   case

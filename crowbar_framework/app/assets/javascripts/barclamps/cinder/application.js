@@ -36,7 +36,7 @@ $(document).ready(function($) {
 
     $(this).hide('slow', function() {
       // delete the backend entry from the attributes JSON
-      $('#proposal_attributes').removeJsonAttribute('volume/' + volume_entry);
+      $('#proposal_attributes').removeJsonAttribute('volumes/' + volume_entry);
       redisplay_backends();
     });
   }
@@ -49,7 +49,7 @@ $(document).ready(function($) {
     $('#cinder_backends [data-netapp-storage-protocol]').on('change', function() {
       var volume_id = $(this).data('volumeid');
 
-      var netapp_storage_protocol = "#volume_{0}_netapp_storage_protocol".format(volume_id);
+      var netapp_storage_protocol = "#volumes_{0}_netapp_storage_protocol".format(volume_id);
       var netapp_nfs_container = "#netapp_nfs_container_{0}".format(volume_id);
 
       switch ($(netapp_storage_protocol).val()) {
@@ -78,7 +78,7 @@ $(document).ready(function($) {
         $('#backend_entries').html()
       );
     }
-    volumes = $('#proposal_attributes').readJsonAttribute('volume', {});
+    volumes = $('#proposal_attributes').readJsonAttribute('volumes', {});
     volume_defaults = $('#proposal_attributes').readJsonAttribute('volume_defaults', {});
 
     // Render forms for backend list
@@ -96,15 +96,15 @@ $(document).ready(function($) {
   }
 
   if (!use_multi_backend) {
-    $('#volume_0_backend_driver').on('change', function() {
-      var volumes = $('#proposal_attributes').readJsonAttribute('volume', {});
+    $('#volumes_0_backend_driver').on('change', function() {
+      var volumes = $('#proposal_attributes').readJsonAttribute('volumes', {});
       var new_backend = $(this).val();
       var old_backend = volumes[0]["backend_driver"];
       delete volumes[0][old_backend];
 
       volumes[0]["backend_driver"] = new_backend;
       volumes[0][new_backend] = $('#proposal_attributes').readJsonAttribute('volume_defaults/' + new_backend);
-      $('#proposal_attributes').writeJsonAttribute('volume', volumes);
+      $('#proposal_attributes').writeJsonAttribute('volumes', volumes);
 
       redisplay_backends();
     });
@@ -120,19 +120,19 @@ $(document).ready(function($) {
 
   $('#add_cinder_backend').click(function() {
     var new_backend = {
-      'backend_driver': $('#volume_backend_driver').val(),
-      'backend_name': $('#volume_backend_name').val() || $('#volume_backend_driver').val(),
+      'backend_driver': $('#volumes_backend_driver').val(),
+      'backend_name': $('#volumes_backend_name').val() || $('#volumes_backend_driver').val(),
     };
     var driver = new_backend['backend_driver'];
     new_backend[driver] = $('#proposal_attributes').readJsonAttribute('volume_defaults/' + driver);
 
-    volumes = $('#proposal_attributes').readJsonAttribute('volume', {});
+    volumes = $('#proposal_attributes').readJsonAttribute('volumes', {});
     volumes.push(new_backend);
-    $('#proposal_attributes').writeJsonAttribute('volume', volumes);
+    $('#proposal_attributes').writeJsonAttribute('volumes', volumes);
 
     // Reset field entries
-    $('#volume_backend_driver').val('raw')
-    $('#volume_backend_name').val('')
+    $('#volumes_backend_driver').val('raw')
+    $('#volumes_backend_name').val('')
 
     redisplay_backends();
   });

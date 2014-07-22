@@ -94,7 +94,7 @@ class CinderService < PacemakerServiceObject
     rbd_crowbar = false
     rbd_ceph_conf = false
 
-    proposal["attributes"][@bc_name]["volume"].each do |volume|
+    proposal["attributes"][@bc_name]["volumes"].each do |volume|
       if volume["backend_driver"] == "local"
         volume_name = volume["local"]["volume_name"]
         volume_names[volume_name] = (volume_names[volume_name] || 0) + 1

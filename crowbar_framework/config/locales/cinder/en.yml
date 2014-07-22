@@ -25,7 +25,7 @@ en:
         database_instance: 'Database Instance'
         keystone_instance: 'Keystone'
         glance_instance: 'Glance'
-        volume:
+        volumes:
           "0":
             backend_driver: 'Type of Volume'
           addheader: 'Add new Cinder Backend'

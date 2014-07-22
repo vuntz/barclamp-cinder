@@ -20,13 +20,13 @@ module Barclamp
     def volume_driver_for_cinder(selected)
       options_for_select(
         [
-          [t(".volume.raw_volume_driver"), "raw"],
-          [t(".volume.local_volume_driver"), "local"],
-          [t(".volume.netapp_volume_driver"), "netapp"],
-          [t(".volume.emc_volume_driver"), "emc"],
-          [t(".volume.eqlx_volume_driver"), "eqlx"],
-          [t(".volume.rbd_volume_driver"), "rbd"],
-          [t(".volume.manual_volume_driver"), "manual"]
+          [t(".volumes.raw_volume_driver"), "raw"],
+          [t(".volumes.local_volume_driver"), "local"],
+          [t(".volumes.netapp_volume_driver"), "netapp"],
+          [t(".volumes.emc_volume_driver"), "emc"],
+          [t(".volumes.eqlx_volume_driver"), "eqlx"],
+          [t(".volumes.rbd_volume_driver"), "rbd"],
+          [t(".volumes.manual_volume_driver"), "manual"]
         ],
         selected.to_s
       )

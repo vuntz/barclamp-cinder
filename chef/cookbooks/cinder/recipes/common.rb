@@ -235,7 +235,7 @@ template "/etc/cinder/cinder.conf" do
     :bind_port => bind_port,
     :enable_v2_api => node[:cinder][:enable_v2_api],
     :use_multi_backend => node[:cinder][:use_multi_backend],
-    :volumes => node[:cinder][:volume],
+    :volumes => node[:cinder][:volumes],
     :sql_connection => sql_connection,
     :rabbit_settings => rabbit_settings,
     :glance_server_protocol => glance_server_protocol,
