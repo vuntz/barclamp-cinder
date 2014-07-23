@@ -42,6 +42,8 @@ $(document).ready(function($) {
         redisplay_backends();
       });
     }
+
+    return false;
   }
 
   function attach_events()
