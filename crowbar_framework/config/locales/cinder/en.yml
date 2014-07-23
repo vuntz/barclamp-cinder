@@ -38,7 +38,7 @@ en:
           eqlx_volume_driver: 'EqualLogic'
           file_parameters: 'File-based Parameters'
           listheader: 'Cinder Backends'
-          loading_text: 'Loading Backends..'
+          loading_text: 'Loading Backends...'
           local_parameters: 'Local File Parameters'
           local_volume_driver: 'Local File'
           manual_parameters: 'Other driver parameters'
