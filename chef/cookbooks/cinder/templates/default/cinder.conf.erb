@@ -1517,7 +1517,7 @@ netapp_transport_type=<%= volume['netapp']['netapp_transport_type'] %>
 
 
 <% end -%>
-<% if volume['backend_driver'] == 'netapp' && volume['netapp']['storage_protocol'] == 'nfs' -%>
+<% if volume['backend_driver'] == 'nfs' || (volume['backend_driver'] == 'netapp' && volume['netapp']['storage_protocol'] == 'nfs') -%>
 #
 # Options defined in cinder.volume.drivers.nfs
 #
@@ -1563,7 +1563,11 @@ nfs_shares_config=/etc/cinder/nfs_shares-<%= backend_id %>
 
 # Mount options passed to the nfs client. See section of the
 # nfs man page for details. (string value)
+<% if volume['backend_driver'] == 'nfs' -%>
+nfs_mount_options=<%= volume['nfs']['nfs_mount_options'] %>
+<% else -%>
 #nfs_mount_options=<None>
+<% end -%>
 
 
 <% end -%>
