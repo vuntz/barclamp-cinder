@@ -2049,7 +2049,7 @@ connection=<%= @sql_connection %>
 # Maximum number of SQL connections to keep open in a pool
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_pool_size
-#max_pool_size=5
+max_pool_size=<%= node[:cinder][:max_pool_size] %>
 
 # maximum db connection retries during startup. (setting -1
 # implies an infinite retry count) (integer value)
@@ -2064,7 +2064,7 @@ connection=<%= @sql_connection %>
 # If set, use this value for max_overflow with sqlalchemy
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_overflow
-#max_overflow=<None>
+max_overflow=<%= node[:cinder][:max_overflow] %>
 
 # Verbosity of SQL debugging information. 0=None,
 # 100=Everything (integer value)
@@ -2076,6 +2076,10 @@ connection=<%= @sql_connection %>
 # Deprecated group/name - [DEFAULT]/sql_connection_trace
 #connection_trace=false
 
+# If set, use this value for pool_timeout with SQLAlchemy.
+# (integer value)
+# Deprecated group/name - [DATABASE]/sqlalchemy_pool_timeout
+pool_timeout=<%= node[:cinder][:pool_timeout] %>
 
 [fc-zone-manager]
 
