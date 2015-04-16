@@ -89,18 +89,7 @@ include_recipe "database::client"
 include_recipe "#{db_settings[:backend_name]}::client"
 include_recipe "#{db_settings[:backend_name]}::python-client"
 
-db_password = ''
-if node.roles.include? "cinder-controller"
-  db_password = node[:cinder][:db][:password]
-else
-  # pickup password to database from cinder-controller node
-  node_controllers = search(:node, "roles:cinder-controller") || []
-  if node_controllers.length > 0
-    db_password = node_controllers[0][:cinder][:db][:password]
-  end
-end
-
-sql_connection = "#{db_settings[:url_scheme]}://#{node[:cinder][:db][:user]}:#{db_password}@#{db_settings[:address]}/#{node[:cinder][:db][:database]}"
+sql_connection = "#{db_settings[:url_scheme]}://#{node[:cinder][:db][:user]}:#{node[:cinder][:db][:password]}@#{db_settings[:address]}/#{node[:cinder][:db][:database]}"
 
 my_ipaddress = Chef::Recipe::Barclamp::Inventory.get_network_by_type(node, "admin").address
 node[:cinder][:api][:bind_host] = my_ipaddress
