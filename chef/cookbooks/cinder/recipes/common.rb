@@ -81,33 +81,9 @@ else
   end
 end
 
-glance_env_filter = " AND glance_config_environment:glance-config-#{node[:cinder][:glance_instance]}"
-glance_servers = search(:node, "roles:glance-server#{glance_env_filter}") || []
-
-if glance_servers.length > 0
-  glance_server = glance_servers[0]
-  glance_server = node if glance_server.name == node.name
-  glance_server_host = CrowbarHelper.get_host_for_admin_url(glance_server, (glance_server[:glance][:ha][:enabled] rescue false))
-  glance_server_protocol = glance_server[:glance][:api][:protocol]
-  glance_server_port = glance_server[:glance][:api][:bind_port]
-  glance_server_insecure = glance_server_protocol == 'https' && glance_server[:glance][:ssl][:insecure]
-else
-  glance_server_host = nil
-  glance_server_port = nil
-  glance_server_protocol = nil
-  glance_server_insecure = nil
-end
-Chef::Log.info("Glance server at #{glance_server_host}")
-
-nova_apis = search(:node, "roles:nova-multi-controller") || []
-if nova_apis.length > 0
-  nova_api = nova_apis[0]
-  nova_api_insecure = nova_api[:nova][:ssl][:enabled] && nova_api[:nova][:ssl][:insecure]
-else
-  nova_api_insecure = false
-end
-
 db_settings = fetch_database_settings
+glance_settings = CrowbarConfig.fetch("openstack", "glance")
+nova_settings = CrowbarConfig.fetch("openstack", "nova")
 
 include_recipe "database::client"
 include_recipe "#{db_settings[:backend_name]}::client"
@@ -224,11 +200,11 @@ template "/etc/cinder/cinder.conf" do
     :volumes => node[:cinder][:volumes],
     :sql_connection => sql_connection,
     :rabbit_settings => fetch_rabbitmq_settings,
-    :glance_server_protocol => glance_server_protocol,
-    :glance_server_host => glance_server_host,
-    :glance_server_port => glance_server_port,
-    :glance_server_insecure => glance_server_insecure,
-    :nova_api_insecure => nova_api_insecure,
+    :glance_server_protocol => glance_settings.fetch("protocol", "http"),
+    :glance_server_host => glance_settings.fetch("host", "127.0.0.1"),
+    :glance_server_port => glance_settings.fetch("port", 9292),
+    :glance_server_insecure => glance_settings.fetch("insecure", false),
+    :nova_api_insecure => nova_settings.fetch("insecure", false),
     :availability_zone => availability_zone,
     :keystone_settings => KeystoneHelper.keystone_settings(node, :cinder),
     :strict_ssh_host_key_policy => node[:cinder][:strict_ssh_host_key_policy],
