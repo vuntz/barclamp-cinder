@@ -182,6 +182,28 @@ class CinderService < PacemakerServiceObject
     super
   end
 
+  def export_to_deployment_config(role)
+    @logger.debug("Cinder export_to_deployment_config: entering")
+
+    attributes = role.default_attributes[@bc_name]
+    deployment = role.override_attributes[@bc_name]
+
+    config = DeploymentConfig.new("openstack", @bc_name)
+
+    controller_element = deployment["elements"]["cinder-controller"].first
+
+    config.set({
+      "host" => OpenstackHelpers.get_host_for_admin_url(controller_element),
+      "port" => attributes["api"]["bind_port"],
+      "protocol" => attributes["api"]["protocol"],
+      "insecure" => attributes["api"]["protocol"] == 'https' && attributes["ssl"]["insecure"]
+    })
+
+    config.save
+
+    @logger.debug("Cinder export_to_deployment_config: leaving")
+  end
+
   def apply_role_pre_chef_call(old_role, role, all_nodes)
     @logger.debug("Cinder apply_role_pre_chef_call: entering #{all_nodes.inspect}")
     return if all_nodes.empty?
